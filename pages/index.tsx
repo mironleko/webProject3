@@ -34,7 +34,7 @@ export default function Home() {
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [bestTime, setBestTime] = useState<number>(0);
   const [currentUsersTime, setcurrentUsersTime] = useState<number>(0);
-
+  const [startingAsteroids, setStartingAsteroids] = useState<number>(5); // Default starting number of asteroids
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [showStartModal, setShowStartModal] = useState(true);
 
@@ -78,7 +78,7 @@ export default function Home() {
     const canvas = canvasRef.current;
     if (canvas) {
       const initialAsteroids: Asteroid[] = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < startingAsteroids; i++) {
         initialAsteroids.push(generateAsteroid(canvas));
       }
       setAsteroids(initialAsteroids);
@@ -231,10 +231,14 @@ export default function Home() {
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     if (name === 'maxAsteroids') {
-      setMaxAsteroids(Number(value));
+      setMaxAsteroids(value === "" ? Number(5):Number(value));
     } else if (name === 'asteroidFrequency') {
-      setAsteroidFrequency(Number(value));
+      setAsteroidFrequency(value === "" ? Number(1000):Number(value));
     }
+  };
+
+  const handleStartingAsteroidsChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setStartingAsteroids(event.target.value === "" ? Number(1) : Number(event.target.value));
   };
 
   return (
@@ -251,11 +255,12 @@ export default function Home() {
             )}
             <form className="space-y-4">
               <label className="block">
-                <span className="text-gray-700">Max Asteroids:</span>
+                <span className="text-gray-700">Max Asteroids(minimal 5 asteroids):</span>
                 <input
                   type="number"
                   name="maxAsteroids"
                   value={maxAsteroids}
+                  min="5"
                   onChange={handleInputChange}
                   className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -265,8 +270,19 @@ export default function Home() {
                 <input
                   type="number"
                   name="asteroidFrequency"
+                  min="1000"
                   value={asteroidFrequency}
                   onChange={handleInputChange}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </label>
+              <label className="block">
+                <span className="text-gray-700">Starting Asteroids:</span>
+                <input
+                  type="number"
+                  value={startingAsteroids}
+                  onChange={handleStartingAsteroidsChange}
+                  min="1"
                   className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </label>
@@ -280,11 +296,9 @@ export default function Home() {
           </div>
         </div>
       )}
-  
-        <main className="game-container">
-          <canvas ref={canvasRef} className="game-canvas"></canvas>
-        </main>
+      <main className="game-container">
+        <canvas ref={canvasRef} className="game-canvas"></canvas>
+      </main>
     </>
   );
-  
 }
