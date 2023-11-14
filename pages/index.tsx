@@ -1,118 +1,290 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import React, { useEffect, useRef, useState, ChangeEvent } from 'react';
+import '../styles/Home.module.css';
 
-const inter = Inter({ subsets: ['latin'] })
+interface Asteroid {
+  x: number;
+  y: number;
+  velocity: { x: number; y: number };
+}
+
+interface Player {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+}
+
+const initialPlayerState: Player = {
+  x: 0,
+  y: 0,
+  width: 30,
+  height: 30,
+  color: 'red'
+};
 
 export default function Home() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const playerRef = useRef<Player>(initialPlayerState);
+  const [asteroids, setAsteroids] = useState<Asteroid[]>([]);
+  const [maxAsteroids, setMaxAsteroids] = useState<number>(10);
+  const [asteroidFrequency, setAsteroidFrequency] = useState<number>(5000);
+  const asteroidMaxSpeed = 2.5;
+  let animationFrameId = useRef<number>();
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+  const [bestTime, setBestTime] = useState<number>(0);
+  const [currentUsersTime, setcurrentUsersTime] = useState<number>(0);
+
+  const [gameOver, setGameOver] = useState<boolean>(false);
+  const [showStartModal, setShowStartModal] = useState(true);
+
+  
+
+  useEffect(() => {
+    if (gameOver) {
+      setShowStartModal(true);
+    }
+  }, [gameOver]);
+  useEffect(() => {
+    const savedBestTime = parseFloat(localStorage.getItem('bestTime') || '0');
+    setBestTime(savedBestTime);
+  }, []);
+
+ const generateAsteroid = (canvas: HTMLCanvasElement): Asteroid => {
+  const speedX = (Math.random() * 2 - 1) * asteroidMaxSpeed;
+  const speedY = (Math.random() * 2 - 1) * asteroidMaxSpeed;
+
+  let x, y;
+  if (Math.random() < 0.5) {
+    x = Math.random() < 0.5 ? -20 : canvas.width + 20;
+    y = Math.random() * canvas.height;
+  } else {
+    x = Math.random() * canvas.width;
+    y = Math.random() < 0.5 ? -20 : canvas.height + 20;
+  }
+
+  return {
+    x,
+    y,
+    velocity: { x: speedX, y: speedY }
+  };
+};
+
+  const startGame = () => {
+    setShowStartModal(false);
+    setGameOver(false);
+    setGameStartTime(Date.now());
+  
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const initialAsteroids: Asteroid[] = [];
+      for (let i = 0; i < 5; i++) {
+        initialAsteroids.push(generateAsteroid(canvas));
+      }
+      setAsteroids(initialAsteroids);
+    }
+  
+    if (canvas) {
+      playerRef.current = {
+        ...initialPlayerState,
+        x: canvas.width / 2 - initialPlayerState.width / 2,
+        y: canvas.height / 2 - initialPlayerState.height / 2
+      };
+    }
+  };
+
+  const checkCollision = (asteroid: Asteroid): boolean => {
+    return (
+      playerRef.current.x < asteroid.x + 20 &&
+      playerRef.current.x + playerRef.current.width > asteroid.x &&
+      playerRef.current.y < asteroid.y + 20 &&
+      playerRef.current.y + playerRef.current.height > asteroid.y
+    );
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      let newX = playerRef.current.x;
+      let newY = playerRef.current.y;
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          newX -= 10;
+          break;
+        case 'ArrowRight':
+          newX += 10;
+          break;
+        case 'ArrowUp':
+          newY -= 10;
+          break;
+        case 'ArrowDown':
+          newY += 10;
+          break;
+        default:
+          return;
+      }
+
+      const canvas = canvasRef.current;
+      if (canvas) {
+        if (newX < 0) newX = canvas.width - playerRef.current.width;
+        else if (newX + playerRef.current.width > canvas.width) newX = 0;
+        if (newY < 0) newY = canvas.height - playerRef.current.height;
+        else if (newY + playerRef.current.height > canvas.height) newY = 0;
+      }
+
+      playerRef.current = { ...playerRef.current, x: newX, y: newY };
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      const resizeCanvas = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        playerRef.current = {
+          ...playerRef.current,
+          x: canvas.width / 2 - playerRef.current.width / 2,
+          y: canvas.height / 2 - playerRef.current.height / 2
+        };
+      };
+
+      resizeCanvas();
+
+
+      window.addEventListener('resize', resizeCanvas);
+      return () => window.removeEventListener('resize', resizeCanvas);
+    }
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const updateAndRender = () => {
+      if (gameOver || showStartModal) return;
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      asteroids.forEach((asteroid, index) => {
+        context.fillStyle = `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`;
+        context.shadowBlur = 5;
+        context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        asteroid.x += asteroid.velocity.x;
+        asteroid.y += asteroid.velocity.y;
+
+        if (asteroid.x > canvas.width + 20) asteroid.x = -20;
+        else if (asteroid.x < -20) asteroid.x = canvas.width + 20;
+
+        if (asteroid.y > canvas.height + 20) asteroid.y = -20;
+        else if (asteroid.y < -20) asteroid.y = canvas.height + 20;
+
+        context.fillRect(asteroid.x, asteroid.y, 20, 20);
+
+        if (checkCollision(asteroid)) {
+          setGameOver(true);
+          const currentTime = Date.now();
+          const duration = parseFloat(((currentTime - gameStartTime) / 1000).toFixed(3));
+          setcurrentUsersTime(duration)
+          if (duration > bestTime) {
+            setBestTime(duration);
+            localStorage.setItem('bestTime', duration.toString());
+          }
+        }
+      });
+
+      if (!gameOver) {
+        context.fillStyle = playerRef.current.color;
+        context.fillRect(playerRef.current.x, playerRef.current.y, playerRef.current.width, playerRef.current.height);
+        animationFrameId.current = requestAnimationFrame(updateAndRender);
+      }
+    };
+
+    let addAsteroidInterval = setInterval(() => {
+      if (gameOver || showStartModal) return;
+
+      if (asteroids.length < maxAsteroids) {
+        setAsteroids(prevAsteroids => [
+          ...prevAsteroids,
+          generateAsteroid(canvas)
+        ]);
+      }
+    }, asteroidFrequency);
+
+    updateAndRender();
+
+    return () => {
+      clearInterval(addAsteroidInterval);
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, [asteroids, maxAsteroids, asteroidFrequency, gameOver]);
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    if (name === 'maxAsteroids') {
+      setMaxAsteroids(Number(value));
+    } else if (name === 'asteroidFrequency') {
+      setAsteroidFrequency(Number(value));
+    }
+  };
+
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <>
+      {showStartModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4">{gameOver ? "Game Over" : "Welcome to Asteroids Game"}</h2>
+            {gameOver && (
+              <>
+                <p className="mb-2">Current Time: {currentUsersTime.toFixed(3)} seconds</p>
+                <p className="mb-4">Best Time: {bestTime.toFixed(3)} seconds</p>
+              </>
+            )}
+            <form className="space-y-4">
+              <label className="block">
+                <span className="text-gray-700">Max Asteroids:</span>
+                <input
+                  type="number"
+                  name="maxAsteroids"
+                  value={maxAsteroids}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </label>
+              <label className="block">
+                <span className="text-gray-700">Asteroid Generation Frequency (ms):</span>
+                <input
+                  type="number"
+                  name="asteroidFrequency"
+                  value={asteroidFrequency}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </label>
+            </form>
+            <button 
+              onClick={startGame}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
+            >
+              {gameOver ? "Restart" : "Start"}
+            </button> 
+          </div>
         </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+      )}
+  
+        <main className="game-container">
+          <canvas ref={canvasRef} className="game-canvas"></canvas>
+        </main>
+    </>
+  );
+  
 }
