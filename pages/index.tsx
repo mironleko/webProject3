@@ -31,7 +31,7 @@ export default function Home() {
   const [asteroids, setAsteroids] = useState<Asteroid[]>([]);// Stanje koje sadrži informacije o asteroidima u igri.
   const [maxAsteroids, setMaxAsteroids] = useState<number>(10);// Stanje koje označava maksimalni broj asteroida u igri.
   const [asteroidFrequency, setAsteroidFrequency] = useState<number>(5000);// Stanje koje određuje frekvenciju generiranja asteroida (u milisekundama).
-  const asteroidMaxSpeed = 5.5;// Maksimalna brzina asteroida.
+  const asteroidMaxSpeed = 5;// Maksimalna brzina asteroida.
   let animationFrameId = useRef<number>();// Ref za ID animation framea koji se koristi za animaciju igre.
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());// Vrijeme kada je igra započela (u milisekundama).
   const [bestTime, setBestTime] = useState<number>(0);// Najbolje vrijeme koje je postignuto u igri.
@@ -54,18 +54,17 @@ export default function Home() {
   }, []);
 // Funkcija koja generira asteroid.
  const generateAsteroid = (canvas: HTMLCanvasElement): Asteroid => {
-    // Generiranje slučajnih brzina za asteroid.
-
+  // Generiranje slučajnih brzina za asteroid.
   const speedX = (Math.random() * 2 - 1) * asteroidMaxSpeed;
   const speedY = (Math.random() * 2 - 1) * asteroidMaxSpeed;
 
   let x, y;
   if (Math.random() < 0.5) {
-        // Postavljanje početne pozicije asteroida izvan lijevog ili desnog ruba canvasa.
+    // Postavljanje početne pozicije asteroida izvan lijevog ili desnog ruba canvasa.
     x = Math.random() < 0.5 ? -20 : canvas.width + 20;
     y = Math.random() * canvas.height;
   } else {
-        // Postavljanje početne pozicije asteroida izvan gornjeg ili donjeg ruba canvasa.
+    // Postavljanje početne pozicije asteroida izvan gornjeg ili donjeg ruba canvasa.
     x = Math.random() * canvas.width;
     y = Math.random() < 0.5 ? -20 : canvas.height + 20;
   }
@@ -76,6 +75,7 @@ export default function Home() {
     velocity: { x: speedX, y: speedY }
   };
 };
+
   // Funkcija koja započinje igru.
   const startGame = () => {
     // Zatvaranje početnog modala i resetiranje stanja igre.
@@ -94,7 +94,7 @@ export default function Home() {
     }
   
     if (canvas) {
-          // Postavljanje početne pozicije igrača na sredinu canvasa.
+      // Postavljanje početne pozicije igrača na sredinu canvasa.
       playerRef.current = {
         ...initialPlayerState,
         x: canvas.width / 2 - initialPlayerState.width / 2,
@@ -194,9 +194,19 @@ export default function Home() {
       context.clearRect(0, 0, canvas.width, canvas.height);
       // Iteriraj kroz asteroide, iscrtaj ih i provjeri kolizije s igračem.
       asteroids.forEach((asteroid) => {
-        context.fillStyle = `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`;
-        context.shadowBlur = 5;
-        context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        const startColor = 'rgb(50, 50, 50)';
+        const endColor = 'rgb(200, 200, 200)';
+
+        const gradient = context.createLinearGradient(asteroid.x, asteroid.y, asteroid.x + 20, asteroid.y + 20);
+
+        gradient.addColorStop(0, startColor);
+        gradient.addColorStop(1, endColor); 
+
+        context.fillStyle = gradient;
+        context.shadowColor = 'black';
+        context.shadowBlur = 15;
+        context.fill();
+
         asteroid.x += asteroid.velocity.x;
         asteroid.y += asteroid.velocity.y;
       // Ponovno postavljanje asteroida unutar canvasa ako izađe izvan granica.
@@ -223,6 +233,9 @@ export default function Home() {
       if (!gameOver) {
         // Crta igrača ako igra još traje.
         context.fillStyle = playerRef.current.color;
+        context.shadowColor = 'red';
+        context.shadowBlur = 15;
+        context.fill();
         context.fillRect(playerRef.current.x, playerRef.current.y, playerRef.current.width, playerRef.current.height);
         animationFrameId.current = requestAnimationFrame(updateAndRender);
       }
