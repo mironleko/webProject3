@@ -311,8 +311,8 @@ export default function Home() {
           <h2 className={styles.modalTitle}>{gameOver ? "Kraj igre" : "Dobrodošli u igru"}</h2>
             {gameOver && (
               <>
-                <p className="mb-2">Current Time: {formatTime(currentUsersTime)}</p>
-                <p className="mb-4">Best Time: {formatTime(bestTime)}</p>
+                <p className="mb-2">Trenutno vrijeme: {formatTime(currentUsersTime)}</p>
+                <p className="mb-4">Najbolje vrijeme: {formatTime(bestTime)}</p>
               </>
             )}
             <form className="space-y-4">
