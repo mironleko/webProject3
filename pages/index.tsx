@@ -308,7 +308,7 @@ export default function Home() {
       {showStartModal && (
         <div className={styles.modalBackground}>
           <div className={styles.modalContent}>
-            <h2 className={styles.modalTitle}>{gameOver ? "Game Over" : "Welcome to Asteroids Game"}</h2>
+          <h2 className={styles.modalTitle}>{gameOver ? "Kraj igre" : "Dobrodošli u igru"}</h2>
             {gameOver && (
               <>
                 <p className="mb-2">Current Time: {formatTime(currentUsersTime)}</p>
@@ -317,7 +317,7 @@ export default function Home() {
             )}
             <form className="space-y-4">
               <label className={styles.modalLabel}>
-                <span>Max Asteroids(minimal 5 asteroids):</span>
+              <span>Maksimalni broj asteroida (minimalno 5 asteroida):</span>
                 <input
                   type="number"
                   name="maxAsteroids"
@@ -328,7 +328,7 @@ export default function Home() {
                 />
               </label>
               <label className={styles.modalLabel}>
-                <span>Asteroid Generation Frequency (ms):</span>
+              <span>Frekvencija generiranja asteroida (ms):</span>
                 <input
                   type="number"
                   name="asteroidFrequency"
@@ -339,7 +339,7 @@ export default function Home() {
                 />
               </label>
               <label className={styles.modalLabel}>
-                <span>Starting Asteroids:</span>
+              <span>Početni broj asteroida(minimalno 1 asteroid):</span>
                 <input
                   type="number"
                   value={startingAsteroids}
@@ -353,7 +353,7 @@ export default function Home() {
               onClick={startGame}
               className={styles.modalButton}
             >
-              {gameOver ? "Restart" : "Start"}
+          {gameOver ? "Ponovno kreni" : "Započni"}
             </button> 
           </div>
         </div>
